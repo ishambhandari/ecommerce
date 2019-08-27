@@ -5,13 +5,43 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.shortcuts import redirect
-from .models import Item, OrderItem , Order
+from .models import Item, OrderItem , Order, BillingAddress
 from django.utils import timezone
+from .forms import CheckoutForm
 # Create- your views here.
 
-def checkout(request):
-    return render(request, "checkout.html")
-
+class CheckoutView(View):
+    def get(self, *args,**kwargs):
+        form = CheckoutForm()
+        context = {
+            'form': form
+        }
+        return render(self.request, "checkout.html", context)
+    def post(self, *args, **kwargs):
+        form = CheckoutForm(self.request.POST or None)
+        try:
+          order = Order.objects.get(user=self.request.user, ordered = False)
+          if form.is_valid():
+           street_address = form.cleaned_data.get('street_address') 
+           apartment_address= form.cleaned_data.get('apartment_address')
+           zip = form.cleaned_data.get('zip ')
+        # NEED TO ADD FUNCTION TO THESE OBJECTS
+        #    same_biling_address= form.cleaned_data.get('same_biling_address')
+        #    save_info= form.cleaned_data.get('save_info')
+           country = form.cleaned_data.get('country')
+           payment_option= form.cleaned_data.get('payment_option')
+           billing_address = BillingAddress(
+               user=self.request.user,
+               street_address = street_address,
+               apartment_address = apartment_address,
+               country = country,
+               zip = zip)
+           billing_address.save()
+           order.billing_address = billing_address
+           order.save()
+        except ObjectDoesNotExist:
+            messages.error(self.request, "You do not have an active order.")
+            return redirect('core:order-summary')
 class HomeView(ListView):
     model = Item
     paginate_by = 7 
@@ -81,7 +111,7 @@ def remove_from_cart(request, slug):
         #add a message 
         messages.info(request, "You do not have an active order.")
         return redirect("core:product", slug=slug)
-    return redirect("core:product", slug=slug)
+    return redirect("core:order-summary")
 
 @login_required
 def remove_one_item_from_cart(request, slug):
