@@ -68,6 +68,7 @@ class Order(models.Model):
     ordered_date = models.DateTimeField()
     ordered = models.BooleanField(default = False)
     billing_addres = models.ForeignKey('BillingAddress', on_delete = models.SET_NULL, blank = True, null= True)
+    Payment = models.ForeignKey('Payment', on_delete = models.SET_NULL, blank = True, null= True)
 
     def __str__(self):
         return self.user.username
@@ -86,3 +87,12 @@ class BillingAddress(models.Model):
     zip = models.CharField(max_length = 100)
     def __str__(self):
         self.user.username1
+
+class Payment(models.Model):
+    stripe_charge_id = models.CharField(max_length = 50)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete = models.SET_NULL, blank = True, null = True)
+    amount = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.user.username
